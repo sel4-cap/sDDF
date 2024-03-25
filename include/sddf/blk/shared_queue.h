@@ -67,6 +67,7 @@ typedef struct blk_req_queue {
     uint32_t size; /* number of slots in request queue */
     bool plugged; /* prevent requests from being dequeued when plugged */
     blk_request_t buffers[BLK_REQ_QUEUE_SIZE];
+    bool in_progress; /* is xfer in progress? (temp) */
 } blk_req_queue_t;
 
 /* Circular buffer containing responses */

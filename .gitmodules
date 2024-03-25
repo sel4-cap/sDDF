@@ -1,0 +1,3 @@
+[submodule "include/sddf/fs/fat"]
+	path = include/sddf/fs/fat
+	url = git@github.com:Cheng-Li1/AsyncFATFs.git

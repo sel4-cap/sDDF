@@ -14,6 +14,8 @@
 
 #include "ethernet.h"
 
+#define CONFIG_DEBUG_BUILD
+
 #define IRQ_CH 0
 #define TX_CH  1
 #define RX_CH  2
@@ -300,6 +302,8 @@ static void eth_setup(void)
 
 void init(void)
 {
+    sddf_dprintf("ETH|LOG: Ethernet driver init\n");
+
     eth_setup();
 
     net_queue_init(&rx_queue, rx_free, rx_active, NET_RX_QUEUE_SIZE_DRIV);
@@ -307,10 +311,13 @@ void init(void)
 
     rx_provide();
     tx_provide();
+
+    sddf_dprintf("ETH|LOG: Ethernet driver initialised\n");
 }
 
 void notified(microkit_channel ch)
 {
+    microkit_dbg_putc("ETH|LOG: notified on channel");
     switch (ch) {
     case IRQ_CH:
         handle_irq();

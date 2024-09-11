@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <microkit.h>
 #include <sddf/util/util.h>
-#include <sddf/util/printf.h>
+// #include <sddf/util/printf.h>
 #include <sddf/network/queue.h>
 #include <sddf/serial/queue.h>
 #include <sddf/timer/client.h>
@@ -26,6 +26,7 @@
 #include "lwip/dhcp.h"
 
 #include "echo.h"
+#include <stdio.h>
 
 #define SERIAL_TX_CH 0
 #define TIMER  1
@@ -73,6 +74,27 @@ typedef struct state {
 } state_t;
 
 state_t state;
+
+/* Setup for getting picolibc to compile */
+static int
+libc_microkit_putc(char c, FILE *file)
+{
+    (void) file; /* Not used by us */
+    microkit_dbg_putc(c);
+    return c;
+}
+
+static int
+sample_getc(FILE *file)
+{
+	return -1; /* getc not implemented, return EOF */
+}
+
+static FILE __stdio = FDEV_SETUP_STREAM(libc_microkit_putc,
+                    sample_getc,
+                    NULL,
+                    _FDEV_SETUP_WRITE);
+FILE *const stdin = &__stdio; __strong_reference(stdin, stdout); __strong_reference(stdin, stderr);
 
 void set_timeout(void)
 {
@@ -277,14 +299,16 @@ static err_t ethernet_init(struct netif *netif)
 /* Callback function that prints DHCP supplied IP address. */
 static void netif_status_callback(struct netif *netif)
 {
+    printf("In callback function\n");
     if (dhcp_supplied_address(netif)) {
-        sddf_printf("LWIP|NOTICE: DHCP request for %s returned IP address: %s\n", microkit_name,
+        printf("LWIP|NOTICE: DHCP request for %s returned IP address: %s\n", microkit_name,
                     ip4addr_ntoa(netif_ip4_addr(netif)));
     }
 }
 
 void init(void)
 {
+    printf("LWIP|NOTICE: Initialising lwIP stack\n");
     serial_cli_queue_init_sys(microkit_name, NULL, NULL, NULL, &serial_tx_queue_handle, serial_tx_queue, serial_tx_data);
     serial_putchar_init(SERIAL_TX_CH, &serial_tx_queue_handle);
 
@@ -344,6 +368,8 @@ void init(void)
             microkit_notify(TX_CH);
         }
     }
+
+    printf("lwiP|NOTICE: lwIP stack initialised\n");
 }
 
 void notified(microkit_channel ch)
@@ -361,7 +387,7 @@ void notified(microkit_channel ch)
         receive();
         break;
     default:
-        sddf_dprintf("LWIP|LOG: received notification on unexpected channel: %u\n", ch);
+        printf("LWIP|LOG: received notification on unexpected channel: %u\n", ch);
         break;
     }
 

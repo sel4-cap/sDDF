@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <microkit.h>
 
@@ -81,7 +82,7 @@ static err_t tcp_echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t
 
     if (p == NULL) {
         // closing
-        sddf_printf("tcp_echo[%s:%d]: closing\n",
+        printf("tcp_echo[%s:%d]: closing\n",
                     ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port
                    );
 
@@ -90,7 +91,7 @@ static err_t tcp_echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t
 
         err = tcp_close(pcb);
         if (err) {
-            sddf_printf("tcp_echo[%s:%d]: close error: %s\n",
+            printf("tcp_echo[%s:%d]: close error: %s\n",
                         ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port,
                         lwip_strerr(err)
                        );
@@ -99,7 +100,7 @@ static err_t tcp_echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t
         return ERR_OK;
     }
     if (err) {
-        sddf_printf("tcp_echo[%s:%d]: recv error: %s\n",
+        printf("tcp_echo[%s:%d]: recv error: %s\n",
                     ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port,
                     lwip_strerr(err)
                    );
@@ -110,7 +111,7 @@ static err_t tcp_echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t
 
     const size_t capacity = MIN(MIN(queue_space(state), tcp_sndbuf(pcb)), p->tot_len);
     if (p->tot_len > capacity) {
-        sddf_printf("tcp_echo[%s:%d]: can't handle packet of %d bytes: queue_space=%lu sndbuf=%d snd_queuelen=%d\n",
+        printf("tcp_echo[%s:%d]: can't handle packet of %d bytes: queue_space=%lu sndbuf=%d snd_queuelen=%d\n",
                     ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port,
                     p->tot_len,
                     queue_space(state),
@@ -136,7 +137,7 @@ static err_t tcp_echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t
 
         err = tcp_write(pcb, state->buf + state->tail, copied_len, 0);
         if (err) {
-            sddf_printf("tcp_echo[%s:%d]: failed to write: %s\n",
+            printf("tcp_echo[%s:%d]: failed to write: %s\n",
                         ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port,
                         lwip_strerr(err)
                        );
@@ -158,7 +159,7 @@ static void tcp_echo_err(void *arg, err_t err)
     struct echo_state *state = arg;
     assert(state != NULL);
 
-    sddf_printf("tcp_echo: %s\n", lwip_strerr(err));
+    printf("tcp_echo: %s\n", lwip_strerr(err));
 
     tcp_state_free(state);
 }
@@ -167,11 +168,11 @@ static err_t tcp_echo_accept(void *arg, struct tcp_pcb *pcb, err_t err)
 {
     struct echo_state *state = tcp_state_alloc();
     if (state == NULL) {
-        sddf_printf("tcp_echo: failed to alloc state\n");
+        printf("tcp_echo: failed to alloc state\n");
         return ERR_MEM;
     }
 
-    sddf_printf("tcp_echo[%s:%d]: accept\n",
+    printf("tcp_echo[%s:%d]: accept\n",
                 ipaddr_ntoa(&pcb->remote_ip), pcb->remote_port
                );
 
@@ -193,19 +194,19 @@ int setup_tcp_socket(void)
 
     pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (pcb == NULL) {
-        sddf_printf("Failed to open TCP echo socket\n");
+        printf("Failed to open TCP echo socket\n");
         return -1;
     }
 
     err_t error = tcp_bind(pcb, IP_ANY_TYPE, TCP_ECHO_PORT);
     if (error) {
-        sddf_printf("Failed to bind TCP echo socket: %s\n", lwip_strerr(error));
+        printf("Failed to bind TCP echo socket: %s\n", lwip_strerr(error));
         return -1;
     }
 
     pcb = tcp_listen_with_backlog_and_err(pcb, 1, &error);
     if (error) {
-        sddf_printf("Failed to listen on TCP echo socket: %s\n", lwip_strerr(error));
+        printf("Failed to listen on TCP echo socket: %s\n", lwip_strerr(error));
         return -1;
     }
 

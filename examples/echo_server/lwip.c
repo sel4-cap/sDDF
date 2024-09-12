@@ -213,10 +213,10 @@ void transmit(void)
         while (state.head != NULL && !net_queue_empty_free(&state.tx_queue)) {
             err_t err = lwip_eth_send(&state.netif, state.head);
             if (err == ERR_MEM) {
-                sddf_dprintf("LWIP|ERROR: attempted to send a packet of size  %u > BUFFER SIZE  %u\n", state.head->tot_len,
+                printf("LWIP|ERROR: attempted to send a packet of size  %u > BUFFER SIZE  %u\n", state.head->tot_len,
                              NET_BUFFER_SIZE);
             } else if (err != ERR_OK) {
-                sddf_dprintf("LWIP|ERROR: unkown error when trying to send pbuf  %p\n", state.head);
+                printf("LWIP|ERROR: unkown error when trying to send pbuf  %p\n", state.head);
             }
 
             struct pbuf *temp = state.head;
@@ -254,7 +254,7 @@ void receive(void)
             struct pbuf *p = create_interface_buffer(buffer.io_or_offset, buffer.len);
             assert(p != NULL);
             if (state.netif.input(p, &state.netif) != ERR_OK) {
-                sddf_dprintf("LWIP|ERROR: unkown error inputting pbuf into network stack\n");
+                printf("LWIP|ERROR: unkown error inputting pbuf into network stack\n");
                 pbuf_free(p);
             }
         }
@@ -333,7 +333,7 @@ void init(void)
 
     if (!netif_add(&(state.netif), &ipaddr, &netmask, &gw, (void *)&state,
                    ethernet_init, ethernet_input)) {
-        sddf_dprintf("LWIP|ERROR: Netif add returned NULL\n");
+        printf("LWIP|ERROR: Netif add returned NULL\n");
     }
 
     netif_set_default(&(state.netif));
@@ -341,7 +341,7 @@ void init(void)
     netif_set_up(&(state.netif));
 
     if (dhcp_start(&(state.netif))) {
-        sddf_dprintf("LWIP|ERROR: failed to start DHCP negotiation\n");
+        printf("LWIP|ERROR: failed to start DHCP negotiation\n");
     }
 
     setup_udp_socket();

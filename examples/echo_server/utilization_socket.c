@@ -25,7 +25,7 @@
 uintptr_t cyclecounters_vaddr;
 
 
-/* This file implements a TCP based utilization measurment process that starts
+/* This file implements a TCP based utilization measurement process that starts
  * and stops utilization measurements based on a client's requests.
  * The protocol used to communicate is as follows:
  * - Client connects
@@ -53,7 +53,7 @@ uintptr_t cyclecounters_vaddr;
 
 static struct tcp_pcb *utiliz_socket;
 
-#define WHOAMI "100 IPBENCH V1.0\n"
+#define WHOAMI "SECURITY DEMO EXAMPLE\n"
 #define HELLO "HELLO\n"
 #define OK_READY "200 OK (Ready to go)\n"
 #define LOAD "LOAD cpu_target_lukem\n"
@@ -89,7 +89,6 @@ uint64_t start;
 uint64_t idle_ccount_start;
 
 char data_packet_str[MAX_PACKET_SIZE];
-
 
 static inline void my_reverse(char s[])
 {
@@ -259,11 +258,9 @@ int send_keypress(char c) {
         if (buf_index < BUFLEN) {
             kbd_buf[buf_index] = c;
             buf_index++;
-            /* kbd_buf[buf_index++] = '\0'; */
         } else {
-            printf("\nbuffer full (max 7 chars)!\n");
+            printf("Buffer full (max 100 chars)!\n");
         }
-        // int error = tcp_write(curr_pcb, str, strlen(str), TCP_WRITE_FLAG_COPY);
     } else {
         printf("keyboard not ready, type KBD in terminal\n");
     }

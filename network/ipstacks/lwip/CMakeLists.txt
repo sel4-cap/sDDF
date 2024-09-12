@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.7)
 project(lwIP)
 
 set(LWIP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-include(src/Filelists.cmake)
 
 # The minimum set of files needed for lwIP.
 set(lwipcore_SRCS

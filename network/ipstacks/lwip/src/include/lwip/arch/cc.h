@@ -55,7 +55,10 @@ typedef uintptr_t mem_ptr_t;
 #define LWIP_PLATFORM_HTONL(x) ( (((u32_t)(x))>>24) | (((x)&0xFF0000)>>8) \
                                | (((x)&0xFF00)<<8) | (((x)&0xFF)<<24) )
 
+#if !defined(ssize_t) && !defined(_SSIZE_T_DECLARED)
 typedef unsigned long long ssize_t;
+#define _SSIZE_T_DECLARED
+#endif
 
 #define LWIP_RAND                       rand
 

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <microkit.h>
 
@@ -22,6 +23,7 @@
 #define MAX_PACKET_SIZE 0x1000
 
 uintptr_t cyclecounters_vaddr;
+
 
 /* This file implements a TCP based utilization measurment process that starts
  * and stops utilization measurements based on a client's requests.
@@ -65,6 +67,7 @@ static struct tcp_pcb *utiliz_socket;
     "%s\n"
 #define IDLE_FORMAT ",%ld,%ld"
 #define ERROR "400 ERROR\n"
+#define KBD "KBD\n"
 
 #define msg_match(msg, match) (strncmp(msg, match, strlen(match))==0)
 
@@ -76,6 +79,11 @@ static struct tcp_pcb *utiliz_socket;
 
 
 struct bench *bench;
+
+struct tcb_pcb *curr_pcb;
+#define BUFLEN 100
+char kbd_buf[BUFLEN];
+int buf_index = 0;
 
 uint64_t start;
 uint64_t idle_ccount_start;
@@ -129,22 +137,22 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
 
     if (msg_match(data_packet_str, HELLO)) {
         error = tcp_write(pcb, OK_READY, strlen(OK_READY), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK_READY message through utilization peer\n");
+        if (error) printf("Failed to send OK_READY message through utilization peer\n");
     } else if (msg_match(data_packet_str, LOAD)) {
         error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+        if (error) printf("Failed to send OK message through utilization peer\n");
     } else if (msg_match(data_packet_str, SETUP)) {
         error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+        if (error) printf("Failed to send OK message through utilization peer\n");
     } else if (msg_match(data_packet_str, START)) {
-        sddf_printf("%s measurement starting... \n", microkit_name);
+        printf("%s measurement starting... \n", microkit_name);
         if (!strcmp(microkit_name, "client0")) {
             start = __atomic_load_n(&bench->ts, __ATOMIC_RELAXED);
             idle_ccount_start = __atomic_load_n(&bench->ccount, __ATOMIC_RELAXED);
             microkit_notify(START_PMU);
         }
     } else if (msg_match(data_packet_str, STOP)) {
-        sddf_printf("%s measurement finished \n", microkit_name);
+        printf("%s measurement finished \n", microkit_name);
 
         uint64_t total = 0, idle = 0;
 
@@ -177,10 +185,34 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
         if (!strcmp(microkit_name, "client0")) microkit_notify(STOP_PMU);
     } else if (msg_match(data_packet_str, QUIT)) {
         /* Do nothing for now */
+    } else if (msg_match(data_packet_str, KBD)) {
+        if (curr_pcb) {
+            printf("sent '%s'\n", kbd_buf);
+            char* str = "RECEIVED: '";
+            error = tcp_write(curr_pcb, str, strlen(str), TCP_WRITE_FLAG_COPY);
+            error = tcp_write(curr_pcb, kbd_buf, strlen(kbd_buf), TCP_WRITE_FLAG_COPY);
+            str = "'\n";
+            error = tcp_write(curr_pcb, str, strlen(str), TCP_WRITE_FLAG_COPY);
+            for (int i = 0; i < 20; i++) {
+                kbd_buf[i] = '\0';
+            }
+            buf_index = 0;
+            if (error) {
+                printf("Failed to send OK message through utilization peer");
+            }
+        } else {
+            curr_pcb = pcb;
+            printf("Keyboard primed\n");
+            char* return_string = "Keyboard ready for input\n";
+            error = tcp_write(pcb, return_string, strlen(return_string), TCP_WRITE_FLAG_COPY);
+            if (error) {
+                printf("Failed to send OK message through utilization peer");
+            }
+        }
     } else {
-        sddf_dprintf("Received a message that we can't handle %s\n", data_packet_str);
+        printf("Received a message that we can't handle %s\n", data_packet_str);
         error = tcp_write(pcb, ERROR, strlen(ERROR), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+        if (error) printf("Failed to send OK message through utilization peer\n");
     }
 
     return ERR_OK;
@@ -188,9 +220,9 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
 
 static err_t utilization_accept_callback(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
-    sddf_printf("Utilization connection established!\n");
+    printf("Utilization connection established!\n");
     err_t error = tcp_write(newpcb, WHOAMI, strlen(WHOAMI), TCP_WRITE_FLAG_COPY);
-    if (error) sddf_dprintf("Failed to send WHOAMI message through utilization peer\n");
+    if (error) printf("Failed to send WHOAMI message through utilization peer\n");
     tcp_sent(newpcb, utilization_sent_callback);
     tcp_recv(newpcb, utilization_recv_callback);
 
@@ -202,22 +234,38 @@ int setup_utilization_socket(void)
     bench = (void *)cyclecounters_vaddr;
     utiliz_socket = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (utiliz_socket == NULL) {
-        sddf_dprintf("Failed to open a socket for listening!\n");
+        printf("Failed to open a socket for listening!\n");
         return -1;
     }
 
     err_t error = tcp_bind(utiliz_socket, IP_ANY_TYPE, UTILIZATION_PORT);
     if (error) {
-        sddf_dprintf("Failed to bind the TCP socket");
+        printf("Failed to bind the TCP socket");
         return -1;
     }
 
     utiliz_socket = tcp_listen_with_backlog_and_err(utiliz_socket, 1, &error);
     if (error != ERR_OK) {
-        sddf_dprintf("Failed to listen on the utilization socket\n");
+        printf("Failed to listen on the utilization socket\n");
         return -1;
     }
     tcp_accept(utiliz_socket, utilization_accept_callback);
 
+    return 0;
+}
+
+int send_keypress(char c) {
+    if (curr_pcb) {
+        if (buf_index < BUFLEN) {
+            kbd_buf[buf_index] = c;
+            buf_index++;
+            /* kbd_buf[buf_index++] = '\0'; */
+        } else {
+            printf("\nbuffer full (max 7 chars)!\n");
+        }
+        // int error = tcp_write(curr_pcb, str, strlen(str), TCP_WRITE_FLAG_COPY);
+    } else {
+        printf("keyboard not ready, type KBD in terminal\n");
+    }
     return 0;
 }

@@ -177,7 +177,7 @@ void enqueue_pbufs(struct pbuf *p)
 static err_t lwip_eth_send(struct netif *netif, struct pbuf *p)
 {
     if (p->tot_len > NET_BUFFER_SIZE) {
-        sddf_dprintf("LWIP|ERROR: attempted to send a packet of size  %u > BUFFER SIZE  %u\n", p->tot_len, NET_BUFFER_SIZE);
+        printf("LWIP|ERROR: attempted to send a packet of size  %u > BUFFER SIZE  %u\n", p->tot_len, NET_BUFFER_SIZE);
         return ERR_MEM;
     }
 
@@ -308,7 +308,6 @@ static void netif_status_callback(struct netif *netif)
 
 void init(void)
 {
-    printf("LWIP|NOTICE: Initialising lwIP stack\n");
     serial_cli_queue_init_sys(microkit_name, NULL, NULL, NULL, &serial_tx_queue_handle, serial_tx_queue, serial_tx_data);
     serial_putchar_init(SERIAL_TX_CH, &serial_tx_queue_handle);
 
@@ -368,8 +367,6 @@ void init(void)
             microkit_notify(TX_CH);
         }
     }
-
-    printf("lwiP|NOTICE: lwIP stack initialised\n");
 }
 
 void notified(microkit_channel ch)
@@ -410,4 +407,18 @@ void notified(microkit_channel ch)
             microkit_notify(TX_CH);
         }
     }
+}
+
+microkit_msginfo
+protected(microkit_channel ch, microkit_msginfo msginfo) {
+    char c;
+    switch (ch) {
+        case 40:
+            c = (char) microkit_msginfo_get_label(msginfo);
+            send_keypress(c);
+            break;
+        default:
+            printf("lwip received protected unexpected channel\n");
+    }
+    return seL4_MessageInfo_new(0,0,0,0);
 }

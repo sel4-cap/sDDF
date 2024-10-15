@@ -18,6 +18,7 @@ UART_DRIVER := $(SDDF)/drivers/serial/$(UART_DRIV_DIR)
 SERIAL_CONFIG_INCLUDE:=${ECHO_SERVER}/include/serial_config
 TIMER_DRIVER:=$(SDDF)/drivers/timer/$(TIMER_DRV_DIR)
 NETWORK_COMPONENTS:=$(SDDF)/network/components
+MONGOOSE:=${ECHO_SERVER}/mongoose/tutorials/webui/webui-rest
 
 BOARD_DIR := $(MICROKIT_SDK)/board/$(MICROKIT_BOARD)/$(MICROKIT_CONFIG)
 SYSTEM_FILE := ${ECHO_SERVER}/board/$(MICROKIT_BOARD)/echo_server.system
@@ -45,6 +46,8 @@ CFLAGS := -mcpu=$(CPU) \
 	  -MD \
 	  -MP
 
+CFLAGS_MONGOOSE += -DMG_ENABLE_LINES
+
 LDFLAGS := -L$(BOARD_DIR)/lib -L${LIBC}
 LIBS := --start-group -lmicrokit -Tmicrokit.ld -lc libsddf_util_debug.a --end-group
 
@@ -71,10 +74,20 @@ LWIP_OBJS := $(LWIPFILES:.c=.o) lwip.o utilization_socket.o \
 OBJS := $(LWIP_OBJS)
 DEPS := $(filter %.d,$(OBJS:.o=.d))
 
+MONGOOSE_OBJS := main.o mongoose.o
+
 all: loader.img
 
+$(info The value of BUILD_DIR is $(BUILD_DIR))
+${BUILD_DIR}/main.o: $(MONGOOSE)/main.c Makefile
+	$(CC) -c $(CFLAGS) $(CFLAGS_MONGOOSE) $< -o $@
+
+${BUILD_DIR}/mongoose.o: $(MONGOOSE)/mongoose.c Makefile
+	$(CC) -c $(CFLAGS) $(CFLAGS_MONGOOSE) $< -o $@
+
+
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
-lwip.elf: $(LWIP_OBJS) libsddf_util.a
+lwip.elf: $(LWIP_OBJS) ${BUILD_DIR}/main.o ${BUILD_DIR}/mongoose.o libsddf_util.a
 	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
@@ -97,6 +110,7 @@ include ${BENCHMARK}/benchmark.mk
 include ${TIMER_DRIVER}/timer_driver.mk
 include ${UART_DRIVER}/uart_driver.mk
 include ${SERIAL_COMPONENTS}/serial_components.mk
+# include ${MONGOOSE}/Makefile
 
 qemu: $(IMAGE_FILE)
 	$(QEMU) -machine virt,virtualization=on \

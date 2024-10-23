@@ -18,7 +18,8 @@ UART_DRIVER := $(SDDF)/drivers/serial/$(UART_DRIV_DIR)
 SERIAL_CONFIG_INCLUDE:=${ECHO_SERVER}/include/serial_config
 TIMER_DRIVER:=$(SDDF)/drivers/timer/$(TIMER_DRV_DIR)
 NETWORK_COMPONENTS:=$(SDDF)/network/components
-MONGOOSE:=${ECHO_SERVER}/mongoose/tutorials/webui/webui-rest
+BITTY:=${ECHO_SERVER}/BittyHTTP/src
+PICOLIBC_DIR := ${ECHO_SERVER}/picolibc_build/picolibc/aarch64-linux-gnu
 
 BOARD_DIR := $(MICROKIT_SDK)/board/$(MICROKIT_BOARD)/$(MICROKIT_CONFIG)
 SYSTEM_FILE := ${ECHO_SERVER}/board/$(MICROKIT_BOARD)/echo_server.system
@@ -28,7 +29,7 @@ REPORT_FILE := report.txt
 vpath %.c ${SDDF} ${ECHO_SERVER}
 
 IMAGES := eth_driver.elf lwip.elf benchmark.elf idle.elf network_virt_rx.elf\
-	  network_virt_tx.elf copy.elf timer_driver.elf uart_driver.elf serial_virt_tx.elf
+	  network_virt_tx.elf copy.elf timer_driver.elf uart_driver.elf serial_virt_tx.elf web_server.elf
 
 CFLAGS := -mcpu=$(CPU) \
 	  -mstrict-align \
@@ -43,12 +44,14 @@ CFLAGS := -mcpu=$(CPU) \
 	  -I$(SERIAL_CONFIG_INCLUDE) \
 	  -I${SDDF}/$(LWIPDIR)/include \
 	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
+	  -I${BITTY} \
 	  -MD \
 	  -MP
 
-CFLAGS_MONGOOSE += -DMG_ENABLE_LINES
+CFLAGS_PICO := -I${PICOLIBC_DIR}/include
 
 LDFLAGS := -L$(BOARD_DIR)/lib -L${LIBC}
+PICO_LIBS := --start-group -lmicrokit -Tmicrokit.ld -L${PICOLIBC_DIR}/lib -lgcc -lc -lm -lgcc libsddf_util_debug.a --end-group
 LIBS := --start-group -lmicrokit -Tmicrokit.ld -lc libsddf_util_debug.a --end-group
 
 CHECK_FLAGS_BOARD_MD5:=.board_cflags-$(shell echo -- ${CFLAGS} ${BOARD} ${MICROKIT_CONFIG} | shasum | sed 's/ *-//')
@@ -74,21 +77,35 @@ LWIP_OBJS := $(LWIPFILES:.c=.o) lwip.o utilization_socket.o \
 OBJS := $(LWIP_OBJS)
 DEPS := $(filter %.d,$(OBJS:.o=.d))
 
-MONGOOSE_OBJS := main.o mongoose.o
+BITTY_SOURCES := ${BITTY}/WebServer.c ${BITTY}/SocketsCon.c ${BITTY}/main_bitty.c 
+BITTY_OBJS := $(patsubst %.c, %.o, $(BITTY_SOURCES))
 
 all: loader.img
 
-$(info The value of BUILD_DIR is $(BUILD_DIR))
-${BUILD_DIR}/main.o: $(MONGOOSE)/main.c Makefile
-	$(CC) -c $(CFLAGS) $(CFLAGS_MONGOOSE) $< -o $@
+$(info The value of BUILD_DIR is $(BITTY))
 
-${BUILD_DIR}/mongoose.o: $(MONGOOSE)/mongoose.c Makefile
-	$(CC) -c $(CFLAGS) $(CFLAGS_MONGOOSE) $< -o $@
+${BUILD_DIR}/%.o: ${BITTY}/%.c
+	$(CC) -c $(CFLAGS) $(CFLAGS_PICO) $< -o $@
 
+
+# ${BUILD_DIR}/main.o: $(BITTY)/main.c 
+# 	$(CC) -c $(CFLAGS) $< -o $@
+
+# ${BUILD_DIR}/SocketsCon.o: $(BITTY)/SocketsCon.c 
+# 	$(CC) -c $(CFLAGS) $< -o $@
+
+# ${BUILD_DIR}/SocketsCon.o: $(BITTY)/WebServer.c 
+# 	$(CC) -c $(CFLAGS) $< -o $@
+
+${BUILD_DIR}/FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c 
+	$(CC) -c $(CFLAGS) $< -o $@
 
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
-lwip.elf: $(LWIP_OBJS) ${BUILD_DIR}/main.o ${BUILD_DIR}/mongoose.o libsddf_util.a
+lwip.elf: $(LWIP_OBJS) libsddf_util.a
 	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
+
+web_server.elf: ${BUILD_DIR}/FileServer.o ${BITTY_OBJS} libsddf_util.a
+	$(LD) $(LDFLAGS) $^ $(PICO_LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
 ${LWIP_OBJS}: |${BUILD_DIR}/${LWIPDIRS}
@@ -110,7 +127,6 @@ include ${BENCHMARK}/benchmark.mk
 include ${TIMER_DRIVER}/timer_driver.mk
 include ${UART_DRIVER}/uart_driver.mk
 include ${SERIAL_COMPONENTS}/serial_components.mk
-# include ${MONGOOSE}/Makefile
 
 qemu: $(IMAGE_FILE)
 	$(QEMU) -machine virt,virtualization=on \

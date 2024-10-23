@@ -44,13 +44,24 @@ CFLAGS := -mcpu=$(CPU) \
 	  -I$(SERIAL_CONFIG_INCLUDE) \
 	  -I${SDDF}/$(LWIPDIR)/include \
 	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
-	  -I${BITTY} \
 	  -MD \
 	  -MP
 
-CFLAGS_PICO := -I${PICOLIBC_DIR}/include
+CFLAGS_PICO :=-mcpu=$(CPU) \
+	  -mstrict-align \
+	  -ffreestanding \
+	  -g3 -O3 -Wall \
+	  -Wno-unused-function \
+	  -DMICROKIT_CONFIG_$(MICROKIT_CONFIG) \
+	  -I$(BOARD_DIR)/include \
+	  -I$(SDDF)/include \
+	  -I${BITTY} \
+	  -I${PICOLIBC_DIR}/include \
+	  -MD \
+	  -MP
 
 LDFLAGS := -L$(BOARD_DIR)/lib -L${LIBC}
+PICO_LDFLAGS := -L$(BOARD_DIR)/lib
 PICO_LIBS := --start-group -lmicrokit -Tmicrokit.ld -L${PICOLIBC_DIR}/lib -lgcc -lc -lm -lgcc libsddf_util_debug.a --end-group
 LIBS := --start-group -lmicrokit -Tmicrokit.ld -lc libsddf_util_debug.a --end-group
 
@@ -77,15 +88,15 @@ LWIP_OBJS := $(LWIPFILES:.c=.o) lwip.o utilization_socket.o \
 OBJS := $(LWIP_OBJS)
 DEPS := $(filter %.d,$(OBJS:.o=.d))
 
-BITTY_SOURCES := ${BITTY}/WebServer.c ${BITTY}/SocketsCon.c ${BITTY}/main_bitty.c 
-BITTY_OBJS := $(patsubst %.c, %.o, $(BITTY_SOURCES))
+BITTY_SOURCES := ${BITTY}/WebServer.c ${BITTY}/SocketsConMaaxboard.c ${BITTY}/main_bitty.c 
+BITTY_OBJS := $(patsubst %.c, %.o, $(notdir $(BITTY_SOURCES)))
 
 all: loader.img
 
-$(info The value of BUILD_DIR is $(BITTY))
+$(info The value of BUILD_DIR is $(BITTY_OBJS))
 
-${BUILD_DIR}/%.o: ${BITTY}/%.c
-	$(CC) -c $(CFLAGS) $(CFLAGS_PICO) $< -o $@
+%.o: ${BITTY}/%.c
+	$(CC) -c $(CFLAGS_PICO) $< -o $@
 
 
 # ${BUILD_DIR}/main.o: $(BITTY)/main.c 
@@ -97,15 +108,15 @@ ${BUILD_DIR}/%.o: ${BITTY}/%.c
 # ${BUILD_DIR}/SocketsCon.o: $(BITTY)/WebServer.c 
 # 	$(CC) -c $(CFLAGS) $< -o $@
 
-${BUILD_DIR}/FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c 
-	$(CC) -c $(CFLAGS) $< -o $@
+FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c 
+	$(CC) -c $(CFLAGS_PICO) $< -o $@
 
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
 lwip.elf: $(LWIP_OBJS) libsddf_util.a
 	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
 
-web_server.elf: ${BUILD_DIR}/FileServer.o ${BITTY_OBJS} libsddf_util.a
-	$(LD) $(LDFLAGS) $^ $(PICO_LIBS) -o $@
+web_server.elf: FileServer.o ${BITTY_OBJS} libsddf_util.a
+	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
 ${LWIP_OBJS}: |${BUILD_DIR}/${LWIPDIRS}

@@ -51,6 +51,8 @@ export MICROKIT_TOOL ?= $(MICROKIT_SDK)/bin/microkit
 export SDDF=$(abspath ../..)
 export ECHO_INCLUDE:=$(abspath .)/include
 
+$(shell mkdir -p build/network/ipstacks/lwip/src/core/ipv4)
+
 IMAGE_FILE := $(BUILD_DIR)/loader.img
 REPORT_FILE := $(BUILD_DIR)/report.txt
 

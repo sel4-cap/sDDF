@@ -44,10 +44,11 @@ CFLAGS := -mcpu=$(CPU) \
 	  -I$(SERIAL_CONFIG_INCLUDE) \
 	  -I${SDDF}/$(LWIPDIR)/include \
 	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
+	  -I${BITTY} \
 	  -MD \
 	  -MP
 
-CFLAGS_PICO :=-mcpu=$(CPU) \
+CFLAGS_PICO := -mcpu=$(CPU) \
 	  -mstrict-align \
 	  -ffreestanding \
 	  -g3 -O3 -Wall \

@@ -138,7 +138,9 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
     char* message_buffer_str = (char*)message_buffer;
 
     // Write to the message buffer shared memory area 
-    message_buffer_str = data_packet_str;
+    strcpy(message_buffer_str, data_packet_str);
+
+    microkit_notify(6);
 
     if (msg_match(data_packet_str, HELLO)) {
         error = tcp_write(pcb, OK_READY, strlen(OK_READY), TCP_WRITE_FLAG_COPY);

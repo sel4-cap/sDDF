@@ -13,6 +13,7 @@
 #include <sddf/util/util.h>
 #include <sddf/benchmark/bench.h>
 #include <sddf/util/printf.h>
+// #include <WebServer.h>
 
 #include "echo.h"
 
@@ -80,6 +81,9 @@ struct bench *bench;
 uint64_t start;
 uint64_t idle_ccount_start;
 
+// Message buffer area
+uintptr_t message_buffer;
+
 char data_packet_str[MAX_PACKET_SIZE];
 
 
@@ -126,6 +130,15 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
 
     pbuf_copy_partial(p, (void *)data_packet_str, p->tot_len, 0);
     err_t error;
+
+    // Pass the buffer into the custom Run_WebServer function 
+    // Run_WebServer(data_packet_str,p->tot_len);
+
+    // Convert message buffer area to char pointer
+    char* message_buffer_str = (char*)message_buffer;
+
+    // Write to the message buffer shared memory area 
+    message_buffer_str = data_packet_str;
 
     if (msg_match(data_packet_str, HELLO)) {
         error = tcp_write(pcb, OK_READY, strlen(OK_READY), TCP_WRITE_FLAG_COPY);

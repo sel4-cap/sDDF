@@ -195,7 +195,7 @@ static err_t utilization_accept_callback(void *arg, struct tcp_pcb *newpcb, err_
 {
     sddf_printf("Utilization connection established!\n");
     // err_t error = tcp_write(newpcb, WHOAMI, strlen(WHOAMI), TCP_WRITE_FLAG_COPY);
-    if (error) sddf_dprintf("Failed to send WHOAMI message through utilization peer\n");
+    // if (error) sddf_dprintf("Failed to send WHOAMI message through utilization peer\n");
     tcp_sent(newpcb, utilization_sent_callback);
     tcp_recv(newpcb, utilization_recv_callback);
 

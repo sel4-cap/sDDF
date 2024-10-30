@@ -28,7 +28,7 @@ REPORT_FILE := report.txt
 
 vpath %.c ${SDDF} ${ECHO_SERVER}
 
-IMAGES := eth_driver.elf lwip.elf benchmark.elf idle.elf network_virt_rx.elf\
+IMAGES := eth_driver.elf lwip.elf network_virt_rx.elf\
 	  network_virt_tx.elf copy.elf timer_driver.elf uart_driver.elf serial_virt_tx.elf web_server.elf
 
 CFLAGS := -mcpu=$(CPU) \
@@ -141,7 +141,6 @@ ${IMAGE_FILE} $(REPORT_FILE): $(IMAGES) $(SYSTEM_FILE)
 include ${SDDF}/util/util.mk
 include ${SDDF}/network/components/network_components.mk
 include ${ETHERNET_DRIVER}/eth_driver.mk
-include ${BENCHMARK}/benchmark.mk
 include ${TIMER_DRIVER}/timer_driver.mk
 include ${UART_DRIVER}/uart_driver.mk
 include ${SERIAL_COMPONENTS}/serial_components.mk

@@ -105,25 +105,12 @@ $(info The value of BUILD_DIR is $(BITTY_OBJS))
 %.o: ${BITTY}/%.c
 	$(CC) -c $(CFLAGS_PICO) $< -o $@
 
-
-# ${BUILD_DIR}/main.o: $(BITTY)/main.c 
-# 	$(CC) -c $(CFLAGS) $< -o $@
-
-# ${BUILD_DIR}/SocketsCon.o: $(BITTY)/SocketsCon.c 
-# 	$(CC) -c $(CFLAGS) $< -o $@
-
-# ${BUILD_DIR}/SocketsCon.o: $(BITTY)/WebServer.c 
-# 	$(CC) -c $(CFLAGS) $< -o $@
-
 FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c 
 	$(CC) -c $(CFLAGS_PICO) $< -o $@
 
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
 lwip.elf: FileServer.o ${BITTY_OBJS} $(LWIP_OBJS) libsddf_util.a
 	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
-
-# web_server.elf: FileServer.o ${BITTY_OBJS} libsddf_util.a
-# 	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
 ${LWIP_OBJS}: |${BUILD_DIR}/${LWIPDIRS}

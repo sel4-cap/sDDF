@@ -39,6 +39,7 @@ CFLAGS := -mcpu=$(CPU) \
 	  -I$(BOARD_DIR)/include \
 	  -I$(SDDF)/include \
 	  -I${ECHO_INCLUDE}/lwip \
+	  -I${ECHO_INCLUDE} \
 	  -I${ETHERNET_CONFIG_INCLUDE} \
 	  -I$(SERIAL_CONFIG_INCLUDE) \
 	  -I${SDDF}/$(LWIPDIR)/include \
@@ -78,8 +79,6 @@ BITTY_SOURCES := ${BITTY}/WebServer.c ${BITTY}/SocketsConMaaxboard.c ${BITTY}/ma
 BITTY_OBJS := $(patsubst %.c, %.o, $(notdir $(BITTY_SOURCES)))
 
 all: loader.img
-
-$(info The value of BUILD_DIR is $(BITTY_OBJS))
 
 %.o: ${BITTY}/%.c
 	$(CC) -c $(CFLAGS) $< -o $@

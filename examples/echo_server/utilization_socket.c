@@ -13,7 +13,7 @@
 #include <sddf/util/util.h>
 #include <sddf/benchmark/bench.h>
 #include <sddf/util/printf.h>
-// #include <WebServer.h>
+#include <WebServer.h>
 
 #include "echo.h"
 
@@ -81,9 +81,6 @@ struct bench *bench;
 uint64_t start;
 uint64_t idle_ccount_start;
 
-// Message buffer area
-uintptr_t message_buffer;
-
 char data_packet_str[MAX_PACKET_SIZE];
 
 
@@ -132,71 +129,64 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
     err_t error;
 
     // Pass the buffer into the custom Run_WebServer function 
-    // Run_WebServer(data_packet_str,p->tot_len);
+    printf("Running webserver\n");
+    Run_Webserver(data_packet_str, pcb);
 
-    // Convert message buffer area to char pointer
-    char* message_buffer_str = (char*)message_buffer;
+    // if (msg_match(data_packet_str, HELLO)) {
+    //     error = tcp_write(pcb, OK_READY, strlen(OK_READY), TCP_WRITE_FLAG_COPY);
+    //     if (error) sddf_dprintf("Failed to send OK_READY message through utilization peer\n");
+    // } else if (msg_match(data_packet_str, LOAD)) {
+    //     error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
+    //     if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+    // } else if (msg_match(data_packet_str, SETUP)) {
+    //     error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
+    //     if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+    // } else if (msg_match(data_packet_str, START)) {
+    //     sddf_printf("%s measurement starting... \n", microkit_name);
+    //     if (!strcmp(microkit_name, "client0")) {
+    //         start = __atomic_load_n(&bench->ts, __ATOMIC_RELAXED);
+    //         idle_ccount_start = __atomic_load_n(&bench->ccount, __ATOMIC_RELAXED);
+    //         microkit_notify(START_PMU);
+    //     }
+    // } else if (msg_match(data_packet_str, STOP)) {
+    //     sddf_printf("%s measurement finished \n", microkit_name);
 
-    // Write to the message buffer shared memory area 
-    strcpy(message_buffer_str, data_packet_str);
+    //     uint64_t total = 0, idle = 0;
 
-    microkit_notify(6);
+    //     if (!strcmp(microkit_name, "client0")) {
+    //         total = __atomic_load_n(&bench->ts, __ATOMIC_RELAXED) - start;
+    //         idle = __atomic_load_n(&bench->ccount, __ATOMIC_RELAXED) - idle_ccount_start;
+    //     }
 
-    if (msg_match(data_packet_str, HELLO)) {
-        error = tcp_write(pcb, OK_READY, strlen(OK_READY), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK_READY message through utilization peer\n");
-    } else if (msg_match(data_packet_str, LOAD)) {
-        error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
-    } else if (msg_match(data_packet_str, SETUP)) {
-        error = tcp_write(pcb, OK, strlen(OK), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
-    } else if (msg_match(data_packet_str, START)) {
-        sddf_printf("%s measurement starting... \n", microkit_name);
-        if (!strcmp(microkit_name, "client0")) {
-            start = __atomic_load_n(&bench->ts, __ATOMIC_RELAXED);
-            idle_ccount_start = __atomic_load_n(&bench->ccount, __ATOMIC_RELAXED);
-            microkit_notify(START_PMU);
-        }
-    } else if (msg_match(data_packet_str, STOP)) {
-        sddf_printf("%s measurement finished \n", microkit_name);
+    //     char tbuf[21];
+    //     my_itoa(total, tbuf);
 
-        uint64_t total = 0, idle = 0;
+    //     char ibuf[21];
+    //     my_itoa(idle, ibuf);
 
-        if (!strcmp(microkit_name, "client0")) {
-            total = __atomic_load_n(&bench->ts, __ATOMIC_RELAXED) - start;
-            idle = __atomic_load_n(&bench->ccount, __ATOMIC_RELAXED) - idle_ccount_start;
-        }
+    //     /* Message format: ",total,idle\0" */
+    //     int len = strlen(tbuf) + strlen(ibuf) + 3;
+    //     char lbuf[16];
+    //     my_itoa(len, lbuf);
 
-        char tbuf[21];
-        my_itoa(total, tbuf);
-
-        char ibuf[21];
-        my_itoa(idle, ibuf);
-
-        /* Message format: ",total,idle\0" */
-        int len = strlen(tbuf) + strlen(ibuf) + 3;
-        char lbuf[16];
-        my_itoa(len, lbuf);
-
-        char buffer[120];
-        strcat(strcpy(buffer, "220 VALID DATA (Data to follow)\nContent-length: "), lbuf);
-        strcat(buffer, "\n,");
-        strcat(buffer, ibuf);
-        strcat(buffer, ",");
-        strcat(buffer, tbuf);
+    //     char buffer[120];
+    //     strcat(strcpy(buffer, "220 VALID DATA (Data to follow)\nContent-length: "), lbuf);
+    //     strcat(buffer, "\n,");
+    //     strcat(buffer, ibuf);
+    //     strcat(buffer, ",");
+    //     strcat(buffer, tbuf);
         
-        error = tcp_write(pcb, buffer, strlen(buffer) + 1, TCP_WRITE_FLAG_COPY);
-        tcp_shutdown(pcb, 0, 1);
+    //     error = tcp_write(pcb, buffer, strlen(buffer) + 1, TCP_WRITE_FLAG_COPY);
+    //     tcp_shutdown(pcb, 0, 1);
 
-        if (!strcmp(microkit_name, "client0")) microkit_notify(STOP_PMU);
-    } else if (msg_match(data_packet_str, QUIT)) {
-        /* Do nothing for now */
-    } else {
-        sddf_dprintf("Received a message that we can't handle %s\n", data_packet_str);
-        error = tcp_write(pcb, ERROR, strlen(ERROR), TCP_WRITE_FLAG_COPY);
-        if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
-    }
+    //     if (!strcmp(microkit_name, "client0")) microkit_notify(STOP_PMU);
+    // } else if (msg_match(data_packet_str, QUIT)) {
+    //     /* Do nothing for now */
+    // } else {
+    //     sddf_dprintf("Received a message that we can't handle %s\n", data_packet_str);
+    //     error = tcp_write(pcb, ERROR, strlen(ERROR), TCP_WRITE_FLAG_COPY);
+    //     if (error) sddf_dprintf("Failed to send OK message through utilization peer\n");
+    // }
 
     return ERR_OK;
 }
@@ -204,7 +194,7 @@ static err_t utilization_recv_callback(void *arg, struct tcp_pcb *pcb, struct pb
 static err_t utilization_accept_callback(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
     sddf_printf("Utilization connection established!\n");
-    err_t error = tcp_write(newpcb, WHOAMI, strlen(WHOAMI), TCP_WRITE_FLAG_COPY);
+    // err_t error = tcp_write(newpcb, WHOAMI, strlen(WHOAMI), TCP_WRITE_FLAG_COPY);
     if (error) sddf_dprintf("Failed to send WHOAMI message through utilization peer\n");
     tcp_sent(newpcb, utilization_sent_callback);
     tcp_recv(newpcb, utilization_recv_callback);

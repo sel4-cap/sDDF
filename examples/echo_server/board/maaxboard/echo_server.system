@@ -9,9 +9,6 @@
     <memory_region name="eth0" size="0x10_000" phys_addr="0x30be0000" />
     <memory_region name="timer" size="0x10_000" phys_addr="0x302d0000" />
 
-    <!-- Region for message from lwip to web_server -->
-    <memory_region name="message_buffer" size="0x1000" />
-
     <!-- driver/device queue mechanism -->
     <memory_region name="hw_ring_buffer" size="0x10_000" />
 
@@ -180,8 +177,6 @@
             <map mr="serial_tx_queue_client0" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
             <map mr="serial_tx_data_client0" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
 
-            <map mr="message_buffer" vaddr="0x3_000_000" perms="rw" setvar_vaddr="message_buffer" />
-
             <map mr="cyclecounters" vaddr="0x5_010_000" perms="rw" cached="true" setvar_vaddr="cyclecounters_vaddr" />
         </protection_domain>
 
@@ -206,10 +201,6 @@
             <irq irq="87" id="0" /> <!-- timer interrupt -->
         </protection_domain>
 
-        <protection_domain name="web_server" priority="90" id="11">
-            <program_image path="web_server.elf" />
-            <map mr="message_buffer" vaddr="0x2_000_000" perms="rw" setvar_vaddr="message_buffer" />
-        </protection_domain>
     </protection_domain>
 
     <channel>
@@ -296,16 +287,5 @@
         <end pd="timer" id="2" />
         <end pd="client1" id="1" />
     </channel>
-
-    <channel>
-        <end pd="timer" id="3" />
-        <end pd="web_server" id="1" />
-    </channel>
-
-    <channel>
-        <end pd="client0" id="6" /> 
-        <end pd="web_server" id="6" />
-    </channel>
-
 
 </system>

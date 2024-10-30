@@ -45,6 +45,7 @@ CFLAGS := -mcpu=$(CPU) \
 	  -I${SDDF}/$(LWIPDIR)/include \
 	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
 	  -I${BITTY} \
+	  -I${PICOLIBC_DIR}/include \
 	  -MD \
 	  -MP
 
@@ -58,6 +59,11 @@ CFLAGS_PICO := -mcpu=$(CPU) \
 	  -I$(SDDF)/include \
 	  -I${BITTY} \
 	  -I${PICOLIBC_DIR}/include \
+	  -I${SDDF}/$(LWIPDIR)/include \
+	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
+	  -I${ECHO_INCLUDE}/lwip \
+	  -I${ETHERNET_CONFIG_INCLUDE} \
+	  -I$(SERIAL_CONFIG_INCLUDE) \
 	  -MD \
 	  -MP
 
@@ -113,11 +119,11 @@ FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c
 	$(CC) -c $(CFLAGS_PICO) $< -o $@
 
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
-lwip.elf: $(LWIP_OBJS) libsddf_util.a
-	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
-
-web_server.elf: FileServer.o ${BITTY_OBJS} libsddf_util.a
+lwip.elf: FileServer.o ${BITTY_OBJS} $(LWIP_OBJS) libsddf_util.a
 	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
+
+# web_server.elf: FileServer.o ${BITTY_OBJS} libsddf_util.a
+# 	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
 ${LWIP_OBJS}: |${BUILD_DIR}/${LWIPDIRS}

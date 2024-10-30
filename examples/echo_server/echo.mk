@@ -9,7 +9,6 @@ QEMU := qemu-system-aarch64
 MICROKIT_TOOL ?= $(MICROKIT_SDK)/bin/microkit
 ECHO_SERVER:=${SDDF}/examples/echo_server
 LWIPDIR:=network/ipstacks/lwip/src
-BENCHMARK:=$(SDDF)/benchmark
 UTIL:=$(SDDF)/util
 ETHERNET_DRIVER:=$(SDDF)/drivers/network/$(DRIV_DIR)
 ETHERNET_CONFIG_INCLUDE:=${ECHO_SERVER}/include/ethernet_config
@@ -49,28 +48,8 @@ CFLAGS := -mcpu=$(CPU) \
 	  -MD \
 	  -MP
 
-CFLAGS_PICO := -mcpu=$(CPU) \
-	  -mstrict-align \
-	  -ffreestanding \
-	  -g3 -O3 -Wall \
-	  -Wno-unused-function \
-	  -DMICROKIT_CONFIG_$(MICROKIT_CONFIG) \
-	  -I$(BOARD_DIR)/include \
-	  -I$(SDDF)/include \
-	  -I${BITTY} \
-	  -I${PICOLIBC_DIR}/include \
-	  -I${SDDF}/$(LWIPDIR)/include \
-	  -I${SDDF}/$(LWIPDIR)/include/ipv4 \
-	  -I${ECHO_INCLUDE}/lwip \
-	  -I${ETHERNET_CONFIG_INCLUDE} \
-	  -I$(SERIAL_CONFIG_INCLUDE) \
-	  -MD \
-	  -MP
-
-LDFLAGS := -L$(BOARD_DIR)/lib -L${LIBC}
-PICO_LDFLAGS := -L$(BOARD_DIR)/lib
-PICO_LIBS := --start-group -lmicrokit -Tmicrokit.ld -L${PICOLIBC_DIR}/lib -lgcc -lc -lm -lgcc libsddf_util_debug.a --end-group
-LIBS := --start-group -lmicrokit -Tmicrokit.ld -lc libsddf_util_debug.a --end-group
+LDFLAGS := -L$(BOARD_DIR)/lib
+LIBS := --start-group -lmicrokit -Tmicrokit.ld -L${PICOLIBC_DIR}/lib -lgcc -lc -lm -lgcc libsddf_util_debug.a --end-group
 
 CHECK_FLAGS_BOARD_MD5:=.board_cflags-$(shell echo -- ${CFLAGS} ${BOARD} ${MICROKIT_CONFIG} | shasum | sed 's/ *-//')
 
@@ -103,14 +82,14 @@ all: loader.img
 $(info The value of BUILD_DIR is $(BITTY_OBJS))
 
 %.o: ${BITTY}/%.c
-	$(CC) -c $(CFLAGS_PICO) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 FileServer.o: $(BITTY)/Examples/HelloWorld/FileServer.c 
-	$(CC) -c $(CFLAGS_PICO) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 ${LWIP_OBJS}: ${CHECK_FLAGS_BOARD_MD5}
 lwip.elf: FileServer.o ${BITTY_OBJS} $(LWIP_OBJS) libsddf_util.a
-	$(LD) $(PICO_LDFLAGS) $^ $(PICO_LIBS) -o $@
+	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
 
 LWIPDIRS := $(addprefix ${LWIPDIR}/, core/ipv4 netif api)
 ${LWIP_OBJS}: |${BUILD_DIR}/${LWIPDIRS}
@@ -123,7 +102,6 @@ ${IMAGES}: libsddf_util_debug.a
 
 ${IMAGE_FILE} $(REPORT_FILE): $(IMAGES) $(SYSTEM_FILE)
 	$(MICROKIT_TOOL) $(SYSTEM_FILE) --search-path $(BUILD_DIR) --board $(MICROKIT_BOARD) --config $(MICROKIT_CONFIG) -o $(IMAGE_FILE) -r $(REPORT_FILE)
-
 
 include ${SDDF}/util/util.mk
 include ${SDDF}/network/components/network_components.mk

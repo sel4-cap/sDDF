@@ -349,9 +349,6 @@ void init(void)
             microkit_notify(TX_CH);
         }
     }
-
-    // Start the bitty web server
-    start_bitty();
 }
 
 void notified(microkit_channel ch)

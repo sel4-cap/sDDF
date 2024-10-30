@@ -224,5 +224,9 @@ int setup_utilization_socket(void)
     }
     tcp_accept(utiliz_socket, utilization_accept_callback);
 
+    // Reset the web server as new socket/connection opened 
+    sddf_printf("Resetting web server\n");
+    ResetWebServer();
+
     return 0;
 }
